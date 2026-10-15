@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" font-family="system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif">
+  <rect width="960" height="320" rx="14" fill="#18232b"/>
+  <g fill="#232f38"><rect x="24" y="24" width="280" height="272" rx="10"/><rect x="340" y="24" width="280" height="272" rx="10"/><rect x="656" y="24" width="280" height="272" rx="10"/></g>
+  <g fill="none" stroke="#566772" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M311 160h20m-7-7 7 7-7 7"/><path d="M627 160h20m-7-7 7 7-7 7"/></g>
+  <g font-size="15" font-weight="600" fill="#93a3ad"><text x="44" y="54">1</text><text x="360" y="54">2</text><text x="676" y="54">3</text></g>
+
+  <!-- 1: parçalar ayrı -->
+  <path d="M70 170h60v40h60v-40h60v90H70z" fill="#8fa5b3"/>
+  <g transform="translate(232 96) rotate(28)"><rect x="-30" y="-48" width="60" height="96" fill="#f0a548"/></g>
+
+  <!-- 2: iki yüzeye tıkla -->
+  <path d="M386 170h60v40h60v-40h60v90H386z" fill="#8fa5b3"/>
+  <path d="M446 210h60" stroke="#ff5fae" stroke-width="6" stroke-linecap="round"/>
+  <g transform="translate(548 96) rotate(28)"><rect x="-30" y="-48" width="60" height="96" fill="#f0a548"/><path d="M-30 48h60" stroke="#ff5fae" stroke-width="6" stroke-linecap="round"/></g>
+  <g font-size="13" font-weight="700" fill="#18232b" text-anchor="middle">
+    <circle cx="476" cy="236" r="12" fill="#ff5fae"/><text x="476" y="240.500">1</text>
+    <circle cx="500" cy="158" r="12" fill="#ff5fae"/><text x="500" y="162.500">2</text>
+  </g>
+
+  <!-- 3: oturdu -->
+  <path d="M702 170h60v40h60v-40h60v90H702z" fill="#8fa5b3"/>
+  <rect x="762" y="92" width="60" height="118" fill="#f0a548"/>
+  <path d="M762 168v42h60v-42" fill="none" stroke="#ff5fae" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
