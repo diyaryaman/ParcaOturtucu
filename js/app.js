@@ -345,6 +345,19 @@
     refresh();
   });
 
+  /* Bir 3MF nesnesinin içindeki parçalar: birbirine değenler (kutuları kesişenler) tek model kalır, tablada ayrı duranlar ayrı model olur.
+     Negatif ve ayar parçaları, değdikleri katı grubuna gider. */
+  function splitLoose(src){
+    const solid=src.parts.filter(isSolid);if(solid.length<2)return [src];
+    const box=p=>{const b=Core.bbox(p.verts);return {lo:b.lo.map(v=>v-0.05),hi:b.hi.map(v=>v+0.05)};},hit=(a,b)=>[0,1,2].every(k=>a.lo[k]<=b.hi[k]&&b.lo[k]<=a.hi[k]);
+    const B=solid.map(box),par=solid.map((_,i)=>i),find=i=>par[i]===i?i:(par[i]=find(par[i]));
+    for(let i=0;i<solid.length;i++)for(let j=i+1;j<solid.length;j++)if(hit(B[i],B[j]))par[find(i)]=find(j);
+    const groups=new Map();solid.forEach((p,i)=>{const r=find(i);(groups.get(r)||groups.set(r,[]).get(r)).push(i);});
+    if(groups.size<2)return [src];
+    const out=[...groups.values()].map(ix=>({...src,name:ix.length===1?solid[ix[0]].name:src.name+" ("+solid[ix[0]].name+")",parts:ix.map(i=>solid[i]),_b:ix.map(i=>B[i])}));
+    src.parts.filter(p=>!isSolid(p)).forEach(p=>{const b=box(p);(out.find(g=>g._b.some(x=>hit(x,b)))||out[0]).parts.push(p);});
+    out.forEach(g=>delete g._b);return out;
+  }
   async function loadFiles(files){
     if(!files.length)return;
     try{
@@ -355,8 +368,7 @@
         const buf=await f.arrayBuffer(),pk=buf.byteLength>4&&new DataView(buf).getUint32(0,true)===0x04034b50;
         if(pk||/\.3mf$/i.test(f.name)){
           const r=await Core.parse3MF(buf);
-          r.items.forEach(s=>{s.colours=r.colours;s.project=r.project;});
-          srcs.push(...r.items);
+          r.items.forEach(s=>{s.colours=r.colours;s.project=r.project;srcs.push(...splitLoose(s));});
         }else{const w=Core.weld(Core.parseSTL(buf));srcs.push({name:f.name,colored:false,parts:[{name:f.name,verts:w.verts,tris:w.tris,paint:null,extruder:1}]});}
       }
       all().filter(p=>p.sample).forEach(removeItem);
