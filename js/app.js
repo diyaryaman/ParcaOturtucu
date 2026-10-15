@@ -54,7 +54,7 @@
   const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   function theme(){
     matBody.color.set(css("--body-mesh"));matPart.color.set(css("--part-mesh"));matIdle.color.set(css("--part-idle"));matPick.color.set(css("--pick"));matColorSel.emissive.set(css("--pick"));
-    renderer.setClearColor(new THREE.Color(css("--view")),1);buildGrid();render();
+    renderer.setClearColor(new THREE.Color(css("--view")),1);buildGrid(true);render();
   }
   function resize(){
     const r=canvas.parentElement.getBoundingClientRect();if(!r.width||!r.height)return;
@@ -229,20 +229,28 @@
     if(reveal){reveal=false;const s=ul.querySelector('[aria-pressed="true"]');if(s)s.scrollIntoView({block:"nearest"});}
   }
   function refresh(){
-    placeAll();
+    placeAll();buildGrid();
     const t=S.target;
     $("selTarget").textContent=t?`${t.item.name} · ${fmt(t.region.area,0)} mm²`:tr("seçilmedi");
     const sg=S.sugg||[];$("suggInfo").textContent=!t?"–":sg.length?tr("{0} yer, en iyisi: {1}",sg.length,sg[0].item.name):tr("uyan yer bulunamadı");$("btnSuggest").disabled=!sg.length;
     renderList();syncInputs();output();render();
   }
   function light(){placeAll();output();render();}
-  function buildGrid(){
-    if(grid){scene.remove(grid);grid.geometry.dispose();grid.material.dispose();grid=null;}
-    if(!S.body)return;
-    const plate=+$("plate").value||256,bb=S.body.topo.bb;
-    grid=new THREE.GridHelper(plate,Math.max(1,Math.round(plate/10)),css("--plate"),css("--plate"));
-    grid.rotation.x=Math.PI/2;grid.position.set((bb.lo[0]+bb.hi[0])/2,(bb.lo[1]+bb.hi[1])/2,bb.lo[2]-0.02);
-    grid.raycast=()=>{};scene.add(grid);
+  /* Izgara bütün modelleri kapsayacak kadar büyür (10 mm kareler); gerçek tabla, ana modelin altında ayrı bir çerçeve olarak çizilir. */
+  let gridKey="";
+  function buildGrid(force){
+    const plate=+$("plate").value||256;
+    if(!S.body){if(grid){scene.remove(grid);grid.children.forEach(c=>{c.geometry.dispose();c.material.dispose();});grid=null;gridKey="";}return;}
+    const bb=S.body.topo.bb,M=world(S.body),cx=(bb.lo[0]+bb.hi[0])/2+M.t[0],cy=(bb.lo[1]+bb.hi[1])/2+M.t[1],z=bb.lo[2]+M.t[2]-0.02;
+    let reach=plate/2;const box=boxOf(all());if(!box.isEmpty())reach=Math.max(reach,box.max.x-cx,cx-box.min.x,box.max.y-cy,cy-box.min.y);
+    const size=Math.ceil(reach*2*1.08/50)*50,key=[size,plate,cx,cy,z].map(v=>v.toFixed(1)).join("|");
+    if(!force&&key===gridKey&&grid)return;gridKey=key;
+    if(grid){scene.remove(grid);grid.children.forEach(c=>{c.geometry.dispose();c.material.dispose();});}
+    grid=new THREE.Group();grid.position.set(cx,cy,z);
+    const g=new THREE.GridHelper(size,Math.max(1,Math.round(size/10)),css("--plate"),css("--plate"));g.rotation.x=Math.PI/2;g.raycast=()=>{};grid.add(g);
+    const h=plate/2,pts=[[-h,-h],[h,-h],[h,h],[-h,h],[-h,-h]].map(p=>new THREE.Vector3(p[0],p[1],0.05)),pg=new THREE.BufferGeometry().setFromPoints(pts);
+    const frameLine=new THREE.Line(pg,new THREE.LineBasicMaterial({color:new THREE.Color(css("--muted"))}));frameLine.raycast=()=>{};grid.add(frameLine);
+    scene.add(grid);
   }
   function frame(){
     buildGrid();
@@ -307,7 +315,7 @@
     if(!drag)return;aim(e);if(!ray.ray.intersectPlane(plane,tmp))return;
     drag.root.off=[drag.off[0]+tmp.x-drag.start.x,drag.off[1]+tmp.y-drag.start.y,drag.off[2]];placeAll();render();
   });
-  const endDrag=()=>{if(drag||rot){drag=null;rot=null;controls.enabled=true;output();}};
+  const endDrag=()=>{if(drag||rot){drag=null;rot=null;controls.enabled=true;buildGrid();output();render();}};
   canvas.addEventListener("pointercancel",endDrag);
   canvas.addEventListener("pointerdown",e=>{down=[e.clientX,e.clientY];});
   canvas.addEventListener("pointerup",e=>{
@@ -388,7 +396,7 @@
   ["tiltA","tiltB"].forEach(id=>$(id).addEventListener("input",()=>{const v=parseFloat(String($(id).value).replace(",","."));if(Number.isFinite(v))setParam(id,Math.max(-90,Math.min(90,v)));}));
   $("depth").addEventListener("input",()=>{defDepth=+$("depth").value||0;setParam("depth",defDepth);});
   ["du","dv"].forEach(id=>$(id).addEventListener("input",()=>setParam(id,+$(id).value||0)));
-  $("plate").addEventListener("input",()=>{buildGrid();output();render();});
+  $("plate").addEventListener("input",()=>{buildGrid(true);output();render();});
   $("btnDetach").addEventListener("click",()=>{if(S.active&&S.active.parent){detach(S.active);msg("Model ayrıldı, tabladaki yerine döndü.");refresh();}});
   $("btnDelSel").addEventListener("click",()=>{if(S.active){const n=S.active.name;removeItem(S.active);msg("{0} silindi.","",n);refresh();}});
   $("btnCopySel").addEventListener("click",()=>{if(S.active){
